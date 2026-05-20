@@ -120,6 +120,7 @@
             powerPelletTimer: 0,
             mouthTimer: 0,
             totalDots: 0,
+            tick: 0,
 
             init() {
                 this.ctx = this.canvas.getContext('2d');
@@ -187,8 +188,40 @@
                 }
             },
 
+            moveGhosts() {
+                const dirs = [[1, 0], [-1, 0], [0, -1], [0, 1]];
+                for (let ghost of this.ghosts) {
+                    const randomDir = dirs[Math.floor(Math.random() * dirs.length)];
+                    const nx = ghost.x + randomDir[0];
+                    const ny = ghost.y + randomDir[1];
+                    if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && this.maze[ny][nx] !== '#') {
+                        ghost.x = nx;
+                        ghost.y = ny;
+                    }
+                }
+            },
+
             update() {
                 if (!this.gameRunning || this.gamePaused) return;
+
+                this.tick++;
+                const pacmanMoves = this.tick % 8 === 0;
+                const ghostsMove = this.tick % 10 === 0;
+
+                if (!pacmanMoves) {
+                    // Still run the per-frame timers below, but skip movement this frame.
+                    this.mouthTimer++;
+                    if (this.mouthTimer > 10) {
+                        this.pacman.mouthOpen = !this.pacman.mouthOpen;
+                        this.mouthTimer = 0;
+                    }
+                    if (this.powerPelletActive) {
+                        this.powerPelletTimer--;
+                        if (this.powerPelletTimer <= 0) this.powerPelletActive = false;
+                    }
+                    if (ghostsMove) this.moveGhosts();
+                    return;
+                }
 
                 // Move Pac-Man
                 this.pacman.direction = this.pacman.nextDirection;
@@ -220,17 +253,7 @@
                     }
                 }
 
-                // Move ghosts
-                for (let ghost of this.ghosts) {
-                    const dirs = [[1, 0], [-1, 0], [0, -1], [0, 1]];
-                    const randomDir = dirs[Math.floor(Math.random() * dirs.length)];
-                    const nx = ghost.x + randomDir[0];
-                    const ny = ghost.y + randomDir[1];
-                    if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && this.maze[ny][nx] !== '#') {
-                        ghost.x = nx;
-                        ghost.y = ny;
-                    }
-                }
+                if (ghostsMove) this.moveGhosts();
 
                 // Ghost collision
                 for (let ghost of this.ghosts) {
